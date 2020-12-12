@@ -1,23 +1,20 @@
-"""
-Amazon MWS Subscriptions API
-"""
-from __future__ import absolute_import
+"""Amazon MWS Subscriptions API."""
 
-from ..mws import MWS
-from .. import utils
-# from .. import utils
+from mws import MWS
+from mws.utils.params import coerce_to_bool
+from mws.utils.params import enumerate_keyed_param
 
 # TODO include NotificationType enumeration
 # TODO set up a basic object for Subscription and Destination types?
 
 
 class Subscriptions(MWS):
-    """
-    Amazon MWS Subscriptions API
+    """Amazon MWS Subscriptions API
 
     Docs:
     http://docs.developer.amazonservices.com/en_US/subscriptions/index.html
     """
+
     URI = "/Subscriptions/2013-07-01"
     VERSION = "2013-07-01"
     NAMESPACE = "{http://mws.amazonaws.com/Subscriptions/2013-07-01}"
@@ -32,210 +29,219 @@ class Subscriptions(MWS):
             return {}
         attribute_list = []
         for key, val in attributes.items():
-            attribute_list.append({
-                'Key': key,
-                'Value': val,
-            })
+            attribute_list.append({"Key": key, "Value": val})
         return attribute_list
 
-    def register_destination(self, marketplace_id, attributes=None, delivery_channel="SQS"):
-        """
-        Specifies a new destination where you want to receive notifications.
+    def register_destination(
+        self, marketplace_id, attributes=None, delivery_channel="SQS"
+    ):
+        """Specifies a new destination where you want to receive notifications.
 
         Docs:
         http://docs.developer.amazonservices.com/en_US/subscriptions/Subscriptions_RegisterDestination.html
 
         delivery_channel: Currently only supports SQS
         attributes: example {"sqsQueueUrl": "https://sqs.eu-west-2.amazonaws.com/378051892504/Amazon_MWS_Notify"}
-
         """
         if attributes is None:
             raise ValueError("attributes cannot be None")
 
         data = {
-            "Action": "RegisterDestination",
             "MarketplaceId": marketplace_id,
-            "Destination.DeliveryChannel": delivery_channel
+            "Destination.DeliveryChannel": delivery_channel,
         }
-        data.update(utils.enumerate_keyed_param("Destination.AttributeList.member", self._parse_attributes(attributes)))
+        data.update(
+            enumerate_keyed_param(
+                "Destination.AttributeList.member", self._parse_attributes(attributes)
+            )
+        )
+        return self.make_request("RegisterDestination", data, method="POST")
 
-        return self.make_request(data, "POST")
-
-    def deregister_destination(self, marketplace_id, attributes=None, delivery_channel="SQS"):
-        """
-        Removes an existing destination from the list of registered destinations.
+    def deregister_destination(
+        self, marketplace_id, attributes=None, delivery_channel="SQS"
+    ):
+        """Removes an existing destination from the list of registered destinations.
 
         Docs:
         http://docs.developer.amazonservices.com/en_US/subscriptions/Subscriptions_DeregisterDestination.html
 
         delivery_channel: Currently only supports SQS
         attributes: example {"sqsQueueUrl": "https://sqs.eu-west-2.amazonaws.com/378051892504/Amazon_MWS_Notify"}
-
         """
         if attributes is None:
             raise ValueError("attributes cannot be None")
 
         data = {
-            "Action": "DeregisterDestination",
             "MarketplaceId": marketplace_id,
-            "Destination.DeliveryChannel": delivery_channel
+            "Destination.DeliveryChannel": delivery_channel,
         }
-        data.update(utils.enumerate_keyed_param("Destination.AttributeList.member", self._parse_attributes(attributes)))
-
-        return self.make_request(data, "POST")
+        data.update(
+            enumerate_keyed_param(
+                "Destination.AttributeList.member", self._parse_attributes(attributes)
+            )
+        )
+        return self.make_request("DeregisterDestination", data, method="POST")
 
     def list_registered_destinations(self, marketplace_id):
-        """
-        Lists all current destinations that you have registered.
+        """Lists all current destinations that you have registered.
 
         Docs:
         http://docs.developer.amazonservices.com/en_US/subscriptions/Subscriptions_ListRegisteredDestinations.html
         """
-        data = {"Action": "ListRegisteredDestinations",
-                "MarketplaceId": marketplace_id}
+        return self.make_request(
+            "ListRegisteredDestinations",
+            {"MarketplaceId": marketplace_id},
+            method="POST",
+        )
 
-        return self.make_request(data, "POST")
-
-    def send_test_notification_to_destination(self, marketplace_id, attributes=None, delivery_channel="SQS"):
-        """
-        Sends a test notification to an existing destination.
+    def send_test_notification_to_destination(
+        self, marketplace_id, attributes, delivery_channel="SQS"
+    ):
+        """Sends a test notification to an existing destination.
 
         Docs:
         http://docs.developer.amazonservices.com/en_US/subscriptions/Subscriptions_SendTestNotificationToDestination.html
 
         delivery_channel: Currently only supports SQS
         attributes: example {"sqsQueueUrl": "https://sqs.eu-west-2.amazonaws.com/378051892504/Amazon_MWS_Notify"}
-
         """
-        if attributes is None:
-            raise ValueError("attributes cannot be None")
+        data = {
+            "MarketplaceId": marketplace_id,
+            "Destination.DeliveryChannel": delivery_channel,
+        }
+        data.update(
+            enumerate_keyed_param(
+                "Destination.AttributeList.member", self._parse_attributes(attributes)
+            )
+        )
+        return self.make_request(
+            "SendTestNotificationToDestination", data, method="POST"
+        )
 
-        data = {"Action": "SendTestNotificationToDestination",
-                "MarketplaceId": marketplace_id,
-                "Destination.DeliveryChannel": delivery_channel}
-        data.update(utils.enumerate_keyed_param("Destination.AttributeList.member", self._parse_attributes(attributes)))
-
-        return self.make_request(data, method="POST")
-
-    def create_subscription(self, marketplace_id, attributes=None,
-                            notification_type=None, is_enabled=True, delivery_channel="SQS"):
-        """
-        Creates a new subscription for the specified notification type and destination.
+    def create_subscription(
+        self,
+        marketplace_id,
+        attributes,
+        notification_type,
+        is_enabled=True,
+        delivery_channel="SQS",
+    ):
+        """Creates a new subscription for the specified notification type and destination.
 
         Docs:
         http://docs.developer.amazonservices.com/en_US/subscriptions/Subscriptions_CreateSubscription.html
 
         delivery_channel: Currently only supports SQS
         attributes: example {"sqsQueueUrl": "https://sqs.eu-west-2.amazonaws.com/378051892504/Amazon_MWS_Notify"}
-
         """
+        if is_enabled is not None:
+            is_enabled = coerce_to_bool(is_enabled)
+        data = {
+            "MarketplaceId": marketplace_id,
+            "Subscription.Destination.DeliveryChannel": delivery_channel,
+            "Subscription.IsEnabled": is_enabled,
+            "Subscription.NotificationType": notification_type,
+        }
+        data.update(
+            enumerate_keyed_param(
+                "Subscription.Destination.AttributeList.member",
+                self._parse_attributes(attributes),
+            )
+        )
+        return self.make_request("CreateSubscription", data, method="POST")
 
-        if attributes is None:
-            raise ValueError("attributes cannot be None")
-
-        if notification_type is None:
-            raise ValueError("notification_type cannot be None")
-        data = {"Action": "CreateSubscription",
-                "MarketplaceId": marketplace_id,
-                "Subscription.Destination.DeliveryChannel": delivery_channel,
-                "Subscription.IsEnabled": str(is_enabled).lower(),
-                "Subscription.NotificationType": notification_type}
-
-        data.update(utils.enumerate_keyed_param("Subscription.Destination.AttributeList.member",
-                                                self._parse_attributes(attributes)))
-
-        return self.make_request(data, "POST")
-
-    def get_subscription(self, marketplace_id, attributes=None, notification_type=None, delivery_channel="SQS"):
-        """
-        Gets the subscription for the specified notification type and destination.
+    def get_subscription(
+        self,
+        marketplace_id,
+        attributes,
+        notification_type,
+        delivery_channel="SQS",
+    ):
+        """Gets the subscription for the specified notification type and destination.
 
         Docs:
         http://docs.developer.amazonservices.com/en_US/subscriptions/Subscriptions_GetSubscription.html
 
         delivery_channel: Currently only supports SQS
         attributes: example {"sqsQueueUrl": "https://sqs.eu-west-2.amazonaws.com/378051892504/Amazon_MWS_Notify"}
-
         """
+        data = {
+            "MarketplaceId": marketplace_id,
+            "Destination.DeliveryChannel": delivery_channel,
+            "NotificationType": notification_type,
+        }
+        data.update(
+            enumerate_keyed_param(
+                "Destination.AttributeList.member", self._parse_attributes(attributes)
+            )
+        )
+        return self.make_request("GetSubscription", data, method="POST")
 
-        if attributes is None:
-            raise ValueError("attributes cannot be None")
-
-        if notification_type is None:
-            raise ValueError("notification_type cannot be None")
-        data = {"Action": "GetSubscription",
-                "MarketplaceId": marketplace_id,
-                "Destination.DeliveryChannel": delivery_channel,
-                "NotificationType": notification_type}
-        data.update(utils.enumerate_keyed_param("Destination.AttributeList.member",
-                                                self._parse_attributes(attributes)))
-
-        return self.make_request(data, "POST")
-
-    def delete_subscription(self, marketplace_id, attributes=None, notification_type=None, delivery_channel="SQS"):
-
-        """
-        Deletes the subscription for the specified notification type and destination.
+    def delete_subscription(
+        self,
+        marketplace_id,
+        attributes,
+        notification_type,
+        delivery_channel="SQS",
+    ):
+        """Deletes the subscription for the specified notification type and destination.
 
         Docs:
         http://docs.developer.amazonservices.com/en_US/subscriptions/Subscriptions_DeleteSubscription.html
 
         delivery_channel: Currently only supports SQS
         attributes: example {"sqsQueueUrl": "https://sqs.eu-west-2.amazonaws.com/378051892504/Amazon_MWS_Notify"}
-
         """
-
-        if attributes is None:
-            raise ValueError("attributes cannot be None")
-
-        if notification_type is None:
-            raise ValueError("notification_type cannot be None")
-        data = {"Action": "DeleteSubscription",
-                "MarketplaceId": marketplace_id,
-                "Destination.DeliveryChannel": delivery_channel,
-                "NotificationType": notification_type}
-
-        data.update(utils.enumerate_keyed_param("Destination.AttributeList.member", self._parse_attributes(attributes)))
-
-        return self.make_request(data, "POST")
+        data = {
+            "MarketplaceId": marketplace_id,
+            "Destination.DeliveryChannel": delivery_channel,
+            "NotificationType": notification_type,
+        }
+        data.update(
+            enumerate_keyed_param(
+                "Destination.AttributeList.member", self._parse_attributes(attributes)
+            )
+        )
+        return self.make_request("DeleteSubscription", data, method="POST")
 
     def list_subscriptions(self, marketplace_id):
-        """
-        Returns a list of all your current subscriptions.
+        """Returns a list of all your current subscriptions.
 
         Docs:
         http://docs.developer.amazonservices.com/en_US/subscriptions/Subscriptions_ListSubscriptions.html
         """
-        data = {
-            "Action": "ListSubscriptions",
-            "MarketplaceId": marketplace_id,
-        }
+        return self.make_request(
+            "ListSubscriptions", {"MarketplaceId": marketplace_id}, method="POST"
+        )
 
-        return self.make_request(data, "POST")
-
-    def update_subscription(self, marketplace_id, attributes=None,
-                            notification_type=None, is_enabled=True, delivery_channel="SQS"):
-        """
-        Updates the subscription for the specified notification type and destination.
+    def update_subscription(
+        self,
+        marketplace_id,
+        attributes,
+        notification_type,
+        is_enabled=True,
+        delivery_channel="SQS",
+    ):
+        """Updates the subscription for the specified notification type and destination.
 
         Docs:
         http://docs.developer.amazonservices.com/en_US/subscriptions/Subscriptions_UpdateSubscription.html
 
         delivery_channel: Currently only supports SQS
         attributes: example {"sqsQueueUrl": "https://sqs.eu-west-2.amazonaws.com/378051892504/Amazon_MWS_Notify"}
-
         """
-        if attributes is None:
-            raise ValueError("attributes cannot be None")
-
-        if notification_type is None:
-            raise ValueError("notification_type cannot be None")
-        data = {"Action": "UpdateSubscription",
-                "MarketplaceId": marketplace_id,
-                "Subscription.Destination.DeliveryChannel": delivery_channel,
-                "Subscription.IsEnabled": str(is_enabled).lower(),
-                "Subscription.NotificationType": notification_type}
-
-        data.update(utils.enumerate_keyed_param("Subscription.Destination.AttributeList.member",
-                                                self._parse_attributes(attributes)))
-        return self.make_request(data, "POST")
+        if is_enabled is not None:
+            is_enabled = coerce_to_bool(is_enabled)
+        data = {
+            "MarketplaceId": marketplace_id,
+            "Subscription.Destination.DeliveryChannel": delivery_channel,
+            "Subscription.IsEnabled": is_enabled,
+            "Subscription.NotificationType": notification_type,
+        }
+        data.update(
+            enumerate_keyed_param(
+                "Subscription.Destination.AttributeList.member",
+                self._parse_attributes(attributes),
+            )
+        )
+        return self.make_request("UpdateSubscription", data, method="POST")

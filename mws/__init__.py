@@ -1,24 +1,45 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+import warnings
 
-from .mws import MWS, MWSError
-from .apis import Feeds, Finances, InboundShipments, Inventory, MerchantFulfillment,\
-                  OffAmazonPayments, Orders, OutboundShipments, Products, Recommendations,\
-                  Reports, Sellers, Subscriptions
+from .mws import Marketplaces, MWS
+from .errors import MWSError
+from .apis import (
+    Feeds,
+    Finances,
+    InboundShipments,
+    Inventory,
+    MerchantFulfillment,
+    OffAmazonPayments,
+    Orders,
+    OutboundShipments,
+    Products,
+    Recommendations,
+    Reports,
+    Sellers,
+    Subscriptions,
+    EasyShip,
+)
+from .response import MWSResponse
+
 __all__ = [
-    'Feeds',
-    'Finances',
-    'InboundShipments',
-    'Inventory',
-    'MerchantFulfillment',
-    'MWS',
-    'MWSError',
-    'OffAmazonPayments',
-    'Orders',
-    'OutboundShipments',
-    'Products',
-    'Recommendations',
-    'Reports',
-    'Sellers',
-    'Subscriptions',
+    "EasyShip",
+    "Feeds",
+    "Finances",
+    "InboundShipments",
+    "Inventory",
+    "Marketplaces",
+    "MerchantFulfillment",
+    "MWS",
+    "MWSError",
+    "MWSResponse",
+    "OffAmazonPayments",
+    "Orders",
+    "OutboundShipments",
+    "Products",
+    "Recommendations",
+    "Reports",
+    "Sellers",
+    "Subscriptions",
 ]
+
+warnings.simplefilter("default")

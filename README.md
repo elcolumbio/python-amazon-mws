@@ -1,45 +1,110 @@
-# mws [![PyPI version](https://badge.fury.io/py/mws.svg)](https://badge.fury.io/py/mws) [![Gitter chat](https://badges.gitter.im/python-amazon-mws/python-amazon-mws.png)](https://gitter.im/python-amazon-mws/community)
+[![slack](https://img.shields.io/badge/slack-python--amazon--mws-blue?style=for-the-badge&logo=slack)][slack_invite]
+![CI Testing](https://img.shields.io/github/workflow/status/python-amazon-mws/python-amazon-mws/Testing/develop?logo=github&style=for-the-badge)
+[![Coverage](https://img.shields.io/codecov/c/github/python-amazon-mws/python-amazon-mws?logo=codecov&logoColor=ffffff&style=for-the-badge)][codecov_link]
 
-master: 
-[![Requirements Status](https://requires.io/github/python-amazon-mws/python-amazon-mws/requirements.svg?branch=master)](https://requires.io/github/python-amazon-mws/python-amazon-mws/requirements/) [![Build Status](https://travis-ci.org/python-amazon-mws/python-amazon-mws.svg?branch=master)](https://travis-ci.org/python-amazon-mws/python-amazon-mws?branch=master) [![codecov](https://codecov.io/gh/python-amazon-mws/python-amazon-mws/branch/master/graph/badge.svg)](https://codecov.io/gh/python-amazon-mws/python-amazon-mws/branch/master)
+# python-amazon-mws
 
-develop: 
-[![Requirements Status](https://requires.io/github/python-amazon-mws/python-amazon-mws/requirements.svg?branch=develop)](https://requires.io/github/python-amazon-mws/python-amazon-mws/requirements/) [![Build Status](https://travis-ci.org/python-amazon-mws/python-amazon-mws.svg?branch=develop)](https://travis-ci.org/python-amazon-mws/python-amazon-mws?branch=develop) [![codecov](https://codecov.io/gh/python-amazon-mws/python-amazon-mws/branch/develop/graph/badge.svg)](https://codecov.io/gh/python-amazon-mws/python-amazon-mws/branch/develop)
+python-amazon-mws is a Python connector to [Amazon Marketplace Web Services][2]
+(or MWS). It provides a simple way to build and send requests to MWS,
+allowing access to all that MWS can do from your Python application.
 
-Python package for interacting the [Amazon Marketplace Web Services](http://docs.developer.amazonservices.com/en_UK/dev_guide/index.html) API.
+---
 
-This project is a fork and continuation of [czpython/python-amazon-mws](https://github.com/czpython/python-amazon-mws) with added Python 3 support.
+## ⚡ Development update - v1.0dev15 ⚡
 
-**Join us on [Slack](https://join.slack.com/t/pythonamazonmws/shared_invite/enQtOTcwNTAzNjI4OTc2LTQyMzk1YzIxNTU0MmE1MWE0ZDUzZjBhMjI2ODZhNTQ5Mjk3ZTUyOGFkODk1N2Q2NjczZjY2M2U3NzAzNDU4ZTc)!**
+We're working on new features in the run-up to releasing v1.0. If you are using the latest `develop` branch version of the package, you can help us test these new features in your own environment.
 
-# Installation
+### Changes
 
-Install the latest version from PyPI.
+- **Dependencies have been updated: you may need to re-install requirements when upgrading.**
+- **`DictWrapper` and `DataWrapper` are deprecated, and will be removed in v1.1.**
+  - Starting in v1.0, `mws.response.MWSResponse` will be returned from all requests, instead.
+- **`ObjectDict` and its alias `object_dict` are deprecated, and will be removed in v1.1.**
+  - The `.parsed` interface of `DictWrapper` and `DataWrapper` is preserved in `MWSResponse`, but will return an instance of `mws.utils.collections.DotDict` instead of `ObjectDict`. `DotDict` is a more general-purpose object that subclasses `dict` and provides a similar interface, while still allowing keys to be accessed as attributes. New features of this object include the ability to assign values to existing keys, and any `dict` assigned to a key in a `DotDict` will automatically be wrapped in its own `DotDict` with no need for additional processing.
+- **`XML2Dict` and its alias `xml2dict` are deprecated, and will be removed in v1.1.**
+  - We will no longer perform XML parsing with our own methods. Instead, we are adding a dependency to `xmltodict`, which performs the same task a bit more cleanly.
+  - Parsed content will no longer include superfluous extra dictionaries with `value` keys. *If your code looks for the `value` key, you may start seeing errors when testing new features.*
 
+### Testing new features.
+
+**All features related to deprecations in v1.0dev15 are locked behind a feature flag**. Unless you explicitly set the feature flag as follows, your application *should* operate the same as before this update.
+
+**If your application worked on a prior `develop` version and breaks when upgrading to v1.0dev15, please raise an issue so we may investigate.**
+
+To enable and test the new features, first instantiate your API class as normal, then set `_use_feature_mwsresponse` to `True` on the API instance:
+
+```python
+from mws import Orders
+
+api = Orders(...)
+api._use_feature_mwsresponse = True
+
+# Requests can be sent as normal:
+response = api.list_orders()
+# `response` should be an instance of `MWSResponse`,
+# instead of the deprecated `DictWrapper` or `DataWrapper`.
+
+# Use `.parsed` as before:
+for order in response.parsed.Orders.Order:
+    print(order.AmazonOrderId)
+    # etc.
 ```
+
+With this flag set, any request made through `api` will be wrapped in the new `MWSResponse` object; XML content will be parsed by the `xmltodict` dependency; and `response.parsed` will return a `DotDict` instance with your parsed data.
+
+> **Note**: While `MWSResponse` maintains the same `.parsed` interface, other interfaces have changed compared to `DictWrapper` and `DataWrapper`. For instance, `DictWrapper.original` returned the *original bytes* of the response; whereas `MWSResponse.original` returns the *original `requests.Response` instance*. This provides better access to the full range of that response's data. So, to get the *bytes* content, you can use `MWSResponse.original.content`.
+
+> Additionally, `MWSResponse` includes shortcut methods to some of the properties of `requests.Response`, including `.content`, `.text`, `.status_code`, `.headers`, etc. So, you can use `MWSResponse.content` as an equivalent to calling `MWSResponse.original.content`.
+
+> More details will be provided in a documentation update, coming soon.
+
+⚡ *Thank you!* ⚡
+
+---
+
+## Installation
+
+Two versions are currently available:
+
+- Installing `mws` from PyPI, you will have version **0.8.x**, which is built from our `master` branch.
+  - This is a close match to the original package by czpython, with some small tweaks to add critical functionality.
+  - Supports Python 2.7 and 3.4+.
+- The updated **1.0devXY** version must be installed from this repo's `develop` branch.
+  - This includes additional API coverage that may be missing in 0.8.x, as well as other new features.
+  - Some methods have new or updated arguments compared to 0.8.x, and much of the original monolithic `mws` module has been broken down into separate components (such as the `mws.apis` collection of modules).
+  - Supports Python 3.5+.
+
+### Installing 0.8.x (PyPI)
+
+> **Warning**: If you are using version 0.8.x in a production system, note that our eventual 1.0 release will be backwards-incompatible, and may break programs that depend on the 0.8.x version. We advise users pin their Pip-installed version in requirements as `mws~=0.8.9`.
+
+Install the `mws` package using Pip:
+
+```shell
 pip install mws
 ```
 
-Currently the `mws` package on PyPI points to the 0.x branch, but at some later point may point to 1.x. 
+Alternatively, you can install direct from this repo's `master` branch, like so:
 
-| Versions | Description                                                                                                                                                                                | Branch  |
-|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
-| 0.x      | A backwards-compatible drop in replacement for the original package (i.e. same method signatures, class names, etc) with some extra features and anything that was obviously broken fixed. | master  |
-| 1.x      | New features along with backwards-incompatible API changes.                                                                                                                                | develop |
-
-If you want to continue using the 0.x versions, please pin your package to major version 0. i.e use something like `mws~=0.8.6` in your project's `requirements.txt`. 
-
-If you want to use 1.x functionality right now, you can install directly from the Git repo. 
-
+```shell
+pip install git+https://github.com/python-amazon-mws/python-amazon-mws.git@master#egg=mws
 ```
+
+### Installing 1.0.x-dev (GitHub)
+
+Our `develop` version can be installed directly from the repo using:
+
+```shell
 pip install git+https://github.com/python-amazon-mws/python-amazon-mws.git@develop#egg=mws
 ```
 
-# Quickstart
+Note that code may be updated at any time as development continues, so please use at your own risk.
+
+## Quickstart
 
 Export your API credentials as environment variables in your shell.
 
-```
+```shell
 export MWS_ACCOUNT_ID=...
 export MWS_ACCESS_KEY=...
 export MWS_SECRET_KEY=...
@@ -47,7 +112,7 @@ export MWS_SECRET_KEY=...
 
 Now you can experiment with the API from within an interactive Python shell e.g.
 
-```
+```python
 >>> import mws, os
 >>> orders_api = mws.Orders(
 ...     access_key=os.environ['MWS_ACCESS_KEY'],
@@ -67,27 +132,103 @@ GetServiceStatusResponse>\n'
 <Response [200]>
 ```
 
-# Development
-All dependencies for working on `mws` are in `requirements.txt` and `docs/requirements.txt`.
+## Development
 
-## Tests
-Tests are run with pytest. We test against Python 2.7 and supported Python 3.x versions with Travis.
+All dependencies for developing on `python-amazon-mws`, including testing and documentation building, can be installed using:
 
-## Documentation
-Docs are built using Sphinx. Change into the `docs/` directory and install any dependencies from the `requirements.txt` there.
-
-To build HTML documentation, run:
-
+```shell
+pip install -r requirements-dev.txt
 ```
+
+### Using pre-commit framework
+
+This project uses the [pre-commit framework][4]. This framework installs a Git pre-commit hook that runs scripts as detailed in `.pre-commit-config.yaml` on commits in your local clone of the repo. These hooks are used to ensure code quality when contributing to the project.
+
+The `pre-commit` package should already be installed along with installing development requirements (above), but is "opt-in" by design. We highly encourage using it in your local environment. To do so, install the hooks with:
+
+```shell
+pre-commit install
+```
+
+Pre-commit hook scripts will only run against the files that you change within a commit for speed purposes. To run the hooks against all files in the project, use:
+
+```shell
+pre-commit run --all-files
+```
+
+### Tests
+
+Tests are run with `pytest`. To run tests, simply install our dev requirements and then run:
+
+```shell
+pytest
+```
+
+See [pytest docs](https://docs.pytest.org/en/latest/usage.html#specifying-tests-selecting-tests)
+for details on selecting specific tests, rather than the entire test suite, as needed.
+
+We also perform coverage reporting using `pytest-cov`. You can generate a coverage report locally using:
+
+```shell
+pytest --cov=mws
+```
+
+You may also want to generate a local HTML report to navigate the code and see where coverage is missing:
+
+```shell
+pytest --cov=mws --cov-report html
+```
+
+This will create a `htmlcov/` directory, and you can open `htmlcov/index.html` to view the report in your browser.
+
+The test suite and coverage reporting to Codecov are run automatically in the repo on pushes and pull requests, using GitHub Actions workflows. We test on latest versions of Python 3.5+, and on latest Ubuntu, Mac, and Windows OSes.
+
+### Documentation
+
+Docs are built using Sphinx.
+
+To build docs locally, use `make`:
+
+```shell
 make html
 ```
+
 The output HTML documentation will be in `docs/build/`.
 
-To run a live reloading server serving the HTML documentation (on port 8000 by default):
+To run a live reloading server serving the HTML documentation (on `localhost:8000` or `127.0.0.1:8000` by default):
 
-```
+```shell
 make livehtml
 ```
 
-## Contributing
-Please make pull requests to `develop`. Code coverage isn't necessary but encouraged where possible (especially for anything which might behave differently between Python 2/3).
+#### On Windows
+
+`make` may not be available on Windows, but you can still build documentation with `sphinx-build` and `sphinx-autobuild`.
+
+To build the docs locally, use `sphinx-build`:
+
+```shell
+sphinx-build -b html docs/source docs/build
+```
+
+You can also run a live-reloading server using `sphinx-autobuild` (on `localhost:8000` or `127.0.0.1:8000` by default):
+
+```shell
+sphinx-autobuild docs/source docs/build
+```
+
+### Contributing
+
+Please make pull requests to `develop`. Code coverage isn't necessary but encouraged where possible.
+
+## Support
+
+For support using the package, please [join our Slack][slack_invite] and post in the `#help` channel.
+
+For support using MWS itself, we advise using the [MWS documentation][2]
+
+[slack_invite]: https://join.slack.com/t/pythonamazonmws/shared_invite/enQtOTcwNTAzNjI4OTc2LTQyMzk1YzIxNTU0MmE1MWE0ZDUzZjBhMjI2ODZhNTQ5Mjk3ZTUyOGFkODk1N2Q2NjczZjY2M2U3NzAzNDU4ZTc
+[codecov_link]:  https://codecov.io/gh/python-amazon-mws/python-amazon-mws/
+[2]: http://docs.developer.amazonservices.com/en_US/dev_guide/index.html
+[3]: https://github.com/czpython/python-amazon-mws
+[4]: https://pre-commit.com/

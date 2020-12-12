@@ -11,19 +11,21 @@ from .recommendations import Recommendations
 from .reports import Reports
 from .sellers import Sellers
 from .subscriptions import Subscriptions
+from .easyship import EasyShip
 
 __all__ = [
-    'Feeds',
-    'Finances',
-    'InboundShipments',
-    'Inventory',
-    'MerchantFulfillment',
-    'OffAmazonPayments',
-    'Orders',
-    'OutboundShipments',
-    'Products',
-    'Recommendations',
-    'Reports',
-    'Sellers',
-    'Subscriptions',
+    "Feeds",
+    "Finances",
+    "InboundShipments",
+    "Inventory",
+    "MerchantFulfillment",
+    "OffAmazonPayments",
+    "Orders",
+    "OutboundShipments",
+    "Products",
+    "Recommendations",
+    "Reports",
+    "Sellers",
+    "Subscriptions",
+    "EasyShip",
 ]
